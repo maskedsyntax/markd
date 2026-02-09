@@ -171,3 +171,8 @@ cython_debug/
 .pypirc
 
 wobble
+
+
+# Added by cargo
+
+/target
