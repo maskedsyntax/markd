@@ -6,13 +6,12 @@ pub fn markdown_to_pango(input: &str) -> String {
     options.insert(Options::ENABLE_TABLES);
     options.insert(Options::ENABLE_TASKLISTS);
     options.insert(Options::ENABLE_STRIKETHROUGH);
+    options.insert(Options::ENABLE_HEADING_ATTRIBUTES);
 
     let parser = Parser::new_ext(input, options);
     
     let mut output = String::new();
-    let mut _in_code_block = false;
-    // Pango doesn't have a direct "list" tag, so we simulate it.
-    let mut list_stack = Vec::new(); // Stores list type (ordered/unordered)
+    let mut list_stack = Vec::new(); 
 
     for event in parser {
         match event {
@@ -33,25 +32,22 @@ pub fn markdown_to_pango(input: &str) -> String {
                     Tag::Emphasis => output.push_str("<i>"),
                     Tag::Strong => output.push_str("<b>"),
                     Tag::Strikethrough => output.push_str("<s>"),
+                    Tag::Link { .. } => {
+                        output.push_str("<span foreground='#3584e4' underline='single'>");
+                    }
                     Tag::CodeBlock(_) => {
-                        _in_code_block = true;
-                        output.push_str("<tt><span background='#f0f0f0'>");
+                        output.push_str("\n<span font_family='monospace' foreground='#888888'>");
                     }
                     Tag::List(kind) => {
                         list_stack.push(kind);
+                        output.push_str("\n");
                     }
                     Tag::Item => {
                         output.push_str("\n");
-                        // Add indentation based on nesting depth
-                        for _ in 0..list_stack.len() {
-                            output.push_str("  ");
+                        for _ in 0..list_stack.len().saturating_sub(1) {
+                            output.push_str("    ");
                         }
-                        
-                        if let Some(Some(_start)) = list_stack.last().map(|k| *k) {
-                             output.push_str("• ");
-                        } else {
-                             output.push_str("• ");
-                        }
+                        output.push_str(" • ");
                     }
                     _ => {}
                 }
@@ -63,9 +59,9 @@ pub fn markdown_to_pango(input: &str) -> String {
                     TagEnd::Emphasis => output.push_str("</i>"),
                     TagEnd::Strong => output.push_str("</b>"),
                     TagEnd::Strikethrough => output.push_str("</s>"),
+                    TagEnd::Link => output.push_str("</span>"),
                     TagEnd::CodeBlock => {
-                        _in_code_block = false;
-                        output.push_str("</span></tt>\n\n");
+                        output.push_str("</span>\n\n");
                     }
                     TagEnd::List(_) => {
                         list_stack.pop();
@@ -73,7 +69,7 @@ pub fn markdown_to_pango(input: &str) -> String {
                             output.push_str("\n");
                         }
                     }
-                    TagEnd::Item => {} // Newline handled at start
+                    TagEnd::Item => {} 
                     _ => {}
                 }
             }
@@ -83,10 +79,15 @@ pub fn markdown_to_pango(input: &str) -> String {
             }
             Event::Code(text) => {
                 let escaped = glib::markup_escape_text(&text);
-                output.push_str(&format!("<tt>{}</tt>", escaped));
+                output.push_str(&format!("<span font_family='monospace' foreground='#e01b24'>{}</span>", escaped));
+            }
+            Event::Html(html) | Event::InlineHtml(html) => {
+                let escaped = glib::markup_escape_text(&html);
+                output.push_str(&format!("<span foreground='#888888'>{}</span>", escaped));
             }
             Event::SoftBreak => output.push(' '),
             Event::HardBreak => output.push_str("\n"),
+            Event::Rule => output.push_str("\n────────────────────────────────\n\n"),
             _ => {}
         }
     }

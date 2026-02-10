@@ -1,4 +1,3 @@
-use gtk::prelude::*;
 use gio::prelude::*;
 use std::env;
 
