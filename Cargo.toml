@@ -4,12 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-gtk = { package = "gtk4", version = "0.7", features = ["v4_10"] }
-adw = { package = "libadwaita", version = "0.5", features = ["v1_4"] }
-sourceview5 = "0.7"
+gtk = { version = "0.9", features = ["v3_24"] }
+sourceview = "0.9"
 pulldown-cmark = "0.10"
-syntect = "5.2"
-notify = "6.1"
+glib = "0.10"
+gio = "0.9"
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.8"
 tracing = "0.1"

@@ -1,29 +1,25 @@
-use adw::prelude::*;
 use gtk::prelude::*;
-use gtk::{gio, glib};
+use gio::prelude::*;
+use std::env;
 
 mod ui;
 mod core;
 mod io;
 
-fn main() -> glib::ExitCode {
-    // Initialize standard logging (if needed, or use env_logger)
+fn main() {
     tracing_subscriber::fmt::init();
 
-    // Create a new Libadwaita Application
-    let app = adw::Application::builder()
-        .application_id("com.maskedsyntax.markd")
-        .flags(gio::ApplicationFlags::default())
-        .build();
+    let app = gtk::Application::new(
+        Some("com.maskedsyntax.markd"),
+        gio::ApplicationFlags::FLAGS_NONE,
+    ).expect("failed to initialize GTK application");
 
-    // Connect to the "activate" signal
     app.connect_activate(build_ui);
 
-    // Run the application
-    app.run()
+    let args: Vec<String> = env::args().collect();
+    app.run(&args);
 }
 
-fn build_ui(app: &adw::Application) {
-    // We will implement the main window logic in ui/main_window.rs
+fn build_ui(app: &gtk::Application) {
     ui::main_window::build(app);
 }

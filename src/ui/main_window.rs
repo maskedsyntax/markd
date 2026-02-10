@@ -1,104 +1,72 @@
-use adw::prelude::*;
 use gtk::prelude::*;
-use gtk::{gio, glib};
-use sourceview5::prelude::*;
+use sourceview::prelude::*;
 use crate::core::render;
 
-pub fn build(app: &adw::Application) {
-    let window = adw::ApplicationWindow::builder()
-        .application(app)
-        .title("Markd")
-        .default_width(1000)
-        .default_height(600)
-        .build();
+pub fn build(app: &gtk::Application) {
+    let window = gtk::ApplicationWindow::new(app);
+    window.set_title("Markd");
+    window.set_default_size(1000, 600);
 
-    // Create a HeaderBar
-    let header_bar = gtk::HeaderBar::builder()
-        .title_widget(&adw::WindowTitle::new("Markd", ""))
-        .build();
+    let header_bar = gtk::HeaderBar::new();
+    header_bar.set_show_close_button(true);
+    header_bar.set_title(Some("Markd"));
+    window.set_titlebar(Some(&header_bar));
 
-    // Create buttons for the header bar
-    let open_button = gtk::Button::builder()
-        .label("Open")
-        .build();
-    let save_button = gtk::Button::builder()
-        .label("Save")
-        .build();
+    let open_button = gtk::Button::with_label("Open");
+    let save_button = gtk::Button::with_label("Save");
     
-    // Pack buttons into the header bar
     header_bar.pack_start(&open_button);
     header_bar.pack_end(&save_button);
 
-    // Main content area: Split pane
-    let paned = gtk::Paned::builder()
-        .orientation(gtk::Orientation::Horizontal)
-        .position(500)
-        .shrink_start_child(false)
-        .shrink_end_child(false)
-        .hexpand(true)
-        .vexpand(true)
-        .build();
+    // Theme toggle
+    let theme_switch = gtk::Switch::new();
+    let theme_label = gtk::Label::new(Some("Dark Mode"));
+    let theme_box = gtk::Box::new(gtk::Orientation::Horizontal, 5);
+    theme_box.add(&theme_label);
+    theme_box.add(&theme_switch);
+    header_bar.pack_end(&theme_box);
 
-    // Left Pane: SourceView (Editor)
-    let buffer = sourceview5::Buffer::new(None);
-    let view = sourceview5::View::builder()
-        .buffer(&buffer)
-        .monospace(true)
-        .show_line_numbers(true)
-        .vexpand(true)
-        .hexpand(true)
-        .build();
-    let scroll_editor = gtk::ScrolledWindow::builder()
-        .child(&view)
-        .hscrollbar_policy(gtk::PolicyType::Automatic)
-        .vscrollbar_policy(gtk::PolicyType::Automatic)
-        .vexpand(true)
-        .hexpand(true)
-        .build();
+    theme_switch.connect_state_set(|_, is_dark| {
+        if let Some(settings) = gtk::Settings::get_default() {
+            settings.set_property("gtk-application-prefer-dark-theme", &is_dark).unwrap();
+        }
+        Inhibit(false)
+    });
 
-    // Right Pane: Label (Preview)
-    let preview_label = gtk::Label::builder()
-        .label("Preview will appear here")
-        .wrap(true)
-        .xalign(0.0)
-        .yalign(0.0)
-        .selectable(true)
-        .vexpand(true)
-        .hexpand(true)
-        .use_markup(true)
-        .build();
-        
-    let scroll_preview = gtk::ScrolledWindow::builder()
-        .child(&preview_label)
-        .hscrollbar_policy(gtk::PolicyType::Automatic)
-        .vscrollbar_policy(gtk::PolicyType::Automatic)
-        .vexpand(true)
-        .hexpand(true)
-        .build();
+    let paned = gtk::Paned::new(gtk::Orientation::Horizontal);
+    paned.set_position(500);
 
-    paned.set_start_child(Some(&scroll_editor));
-    paned.set_end_child(Some(&scroll_preview));
-
-    // Layout
-    let content = gtk::Box::new(gtk::Orientation::Vertical, 0);
-    content.append(&header_bar);
-    content.append(&paned);
-
-    // Set window content
-    window.set_content(Some(&content));
-
-    // Connect signals
-    let buffer_clone = buffer.clone();
-    let label_clone = preview_label.clone();
+    let buffer = sourceview::Buffer::new(None::<&gtk::TextTagTable>);
+    let view = sourceview::View::new_with_buffer(&buffer);
+    view.set_monospace(true);
+    view.set_show_line_numbers(true);
     
-    buffer.connect_changed(move |buf| {
-        let start = buf.start_iter();
-        let end = buf.end_iter();
-        let text = buf.text(&start, &end, true);
+    let scroll_editor = gtk::ScrolledWindow::new(None::<&gtk::Adjustment>, None::<&gtk::Adjustment>);
+    scroll_editor.add(&view);
+
+    let preview_label = gtk::Label::new(None);
+    preview_label.set_line_wrap(true);
+    preview_label.set_xalign(0.0);
+    preview_label.set_yalign(0.0);
+    preview_label.set_selectable(true);
+    preview_label.set_use_markup(true);
+    
+    let scroll_preview = gtk::ScrolledWindow::new(None::<&gtk::Adjustment>, None::<&gtk::Adjustment>);
+    scroll_preview.add(&preview_label);
+
+    paned.pack1(&scroll_editor, true, false);
+    paned.pack2(&scroll_preview, true, false);
+
+    window.add(&paned);
+
+    let label_clone = preview_label.clone();
+    buffer.connect_changed(move |buf: &sourceview::Buffer| {
+        let (start, end) = buf.get_bounds();
+        let text = buf.get_text(&start, &end, true).unwrap();
         
         let pango_markup = render::markdown_to_pango(&text);
         label_clone.set_markup(&pango_markup);
     });
 
-    window.present();
+    window.show_all();
 }

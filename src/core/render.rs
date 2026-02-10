@@ -1,5 +1,5 @@
 use pulldown_cmark::{Event, Options, Parser, Tag, TagEnd};
-use gtk::glib;
+use glib;
 
 pub fn markdown_to_pango(input: &str) -> String {
     let mut options = Options::empty();
@@ -10,7 +10,7 @@ pub fn markdown_to_pango(input: &str) -> String {
     let parser = Parser::new_ext(input, options);
     
     let mut output = String::new();
-    let mut in_code_block = false;
+    let mut _in_code_block = false;
     // Pango doesn't have a direct "list" tag, so we simulate it.
     let mut list_stack = Vec::new(); // Stores list type (ordered/unordered)
 
@@ -34,23 +34,20 @@ pub fn markdown_to_pango(input: &str) -> String {
                     Tag::Strong => output.push_str("<b>"),
                     Tag::Strikethrough => output.push_str("<s>"),
                     Tag::CodeBlock(_) => {
-                        in_code_block = true;
+                        _in_code_block = true;
                         output.push_str("<tt><span background='#f0f0f0'>");
                     }
                     Tag::List(kind) => {
                         list_stack.push(kind);
                     }
                     Tag::Item => {
-                        output.push_str("
-");
+                        output.push_str("\n");
                         // Add indentation based on nesting depth
                         for _ in 0..list_stack.len() {
                             output.push_str("  ");
                         }
                         
-                        if let Some(Some(start)) = list_stack.last().map(|k| *k) {
-                             // Ordered list not easily supported with auto-increment in simple pango parsing loop without extra state
-                             // simplifying to bullet for now for all or simple number check if we tracked index
+                        if let Some(Some(_start)) = list_stack.last().map(|k| *k) {
                              output.push_str("• ");
                         } else {
                              output.push_str("• ");
@@ -61,26 +58,19 @@ pub fn markdown_to_pango(input: &str) -> String {
             }
             Event::End(tag) => {
                 match tag {
-                    TagEnd::Heading(_) => output.push_str("</span>
-
-"),
-                    TagEnd::Paragraph => output.push_str("</span>
-
-"),
+                    TagEnd::Heading(_) => output.push_str("</span>\n\n"),
+                    TagEnd::Paragraph => output.push_str("</span>\n\n"),
                     TagEnd::Emphasis => output.push_str("</i>"),
                     TagEnd::Strong => output.push_str("</b>"),
                     TagEnd::Strikethrough => output.push_str("</s>"),
                     TagEnd::CodeBlock => {
-                        in_code_block = false;
-                        output.push_str("</span></tt>
-
-");
+                        _in_code_block = false;
+                        output.push_str("</span></tt>\n\n");
                     }
                     TagEnd::List(_) => {
                         list_stack.pop();
                         if list_stack.is_empty() {
-                            output.push_str("
-");
+                            output.push_str("\n");
                         }
                     }
                     TagEnd::Item => {} // Newline handled at start
@@ -96,8 +86,7 @@ pub fn markdown_to_pango(input: &str) -> String {
                 output.push_str(&format!("<tt>{}</tt>", escaped));
             }
             Event::SoftBreak => output.push(' '),
-            Event::HardBreak => output.push_str("
-"),
+            Event::HardBreak => output.push_str("\n"),
             _ => {}
         }
     }
