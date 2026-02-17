@@ -28,13 +28,13 @@ impl Render for Toolbar {
         
         div()
             .flex()
-            .h_10()
-            .bg(theme.toolbar_background)
+            .h_8()
+            .bg(theme.background)
             .border_b(px(1.0))
             .border_color(theme.border)
             .items_center()
-            .px_4()
-            .gap_4()
+            .px_2()
+            .gap_2()
             .child(
                 div()
                     .flex()

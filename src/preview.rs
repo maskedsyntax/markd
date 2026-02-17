@@ -27,7 +27,8 @@ impl Render for Preview {
             .size_full()
             .bg(theme.preview_background)
             .text_color(theme.text_color)
-            .p_4()
+            .py_2()
+            .px_4()
             .overflow_y_scrollbar()
             .child(renderer.render(theme))
     }

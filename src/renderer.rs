@@ -47,7 +47,7 @@ impl MarkdownRenderer {
                             stack.push(Some(div().text_size(size).font_weight(weight).text_color(theme.heading_color).mt_6().mb_2().border_b(if level <= pulldown_cmark::HeadingLevel::H2 { px(1.0) } else { px(0.0) }).border_color(theme.border)));
                         }
                         Tag::Paragraph => {
-                            stack.push(Some(div().flex().flex_wrap().gap_1().line_height(px(24.0)).mb_4()));
+                            stack.push(Some(div().mb_4().line_height(px(24.0))));
                         }
                         Tag::Strong => {
                             stack.push(Some(div().font_weight(FontWeight::BOLD)));

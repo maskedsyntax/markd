@@ -187,7 +187,14 @@ impl Render for Workspace {
             .flex_col()
             .size_full()
             .bg(theme.background)
-            .child(self.menu_bar.clone())
+            .child(
+                gpui_component::TitleBar::new()
+                    .child(
+                        div()
+                            .h_full()
+                            .child(self.menu_bar.clone())
+                    )
+            )
             .child(self.toolbar.clone())
             .child(
                 TabBar::new("tab_bar")
@@ -301,7 +308,8 @@ impl Render for Editor {
             .size_full()
             .bg(theme.editor_background)
             .text_color(theme.text_color)
-            .p_4()
+            .py_2()
+            .px_4()
             .child(
                 Input::new(&self.input)
                     .size_full()
