@@ -14,7 +14,8 @@ fn main() {
         cx.set_global(Theme::dark());
         
         cx.open_window(WindowOptions::default(), |window, cx| {
-            cx.new(|cx| Workspace::new(window, cx))
+            let workspace = cx.new(|cx| Workspace::new(window, cx));
+            cx.new(|cx| gpui_component::Root::new(workspace, window, cx))
         }).expect("failed to open window");
     });
 }

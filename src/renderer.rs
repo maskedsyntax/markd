@@ -92,7 +92,7 @@ impl MarkdownRenderer {
                         Tag::TableCell => {
                             stack.push(Some(div().flex_1().p_2()));
                         }
-                        Tag::Link { dest_url, .. } => {
+                        Tag::Link { dest_url: _, .. } => {
                             stack.push(Some(div().text_color(theme.accent_color).underline()));
                         }
                         _ => {
