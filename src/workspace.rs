@@ -2,6 +2,7 @@ use gpui::*;
 use gpui_component::input::*;
 use gpui_component::resizable::*;
 use gpui_component::tab::*;
+use gpui_component::menu::AppMenuBar;
 use crate::theme::Theme;
 use crate::toolbar::{Toolbar, ToolbarEvent};
 use crate::preview::Preview;
@@ -20,6 +21,7 @@ pub struct TabState {
 
 pub struct Workspace {
     window_handle: AnyWindowHandle,
+    menu_bar: Entity<AppMenuBar>,
     toolbar: Entity<Toolbar>,
     editor: Entity<Editor>,
     preview: Entity<Preview>,
@@ -34,6 +36,7 @@ pub struct Workspace {
 impl Workspace {
     pub fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
         let window_handle = window.window_handle();
+        let menu_bar = AppMenuBar::new(window, cx);
         let toolbar = cx.new(|_cx| Toolbar::new());
         let editor = cx.new(|cx| Editor::new(window, cx));
         let preview = cx.new(|_cx| Preview::new());
@@ -74,6 +77,7 @@ impl Workspace {
         
         let mut workspace = Self { 
             window_handle,
+            menu_bar,
             toolbar, 
             editor, 
             preview, 
@@ -106,7 +110,7 @@ impl Workspace {
         }));
     }
 
-    fn new_file(&mut self, cx: &mut Context<Self>) {
+    pub(crate) fn new_file(&mut self, cx: &mut Context<Self>) {
         let new_tab = TabState { path: None, text: String::new() };
         self.tabs.push(new_tab);
         self.active_tab_index = self.tabs.len() - 1;
@@ -114,7 +118,7 @@ impl Workspace {
         self.render_now(cx);
     }
 
-    fn open_file(&mut self, cx: &mut Context<Self>) {
+    pub(crate) fn open_file(&mut self, cx: &mut Context<Self>) {
         if let Some(path) = rfd::FileDialog::new().pick_file() {
             if let Ok(content) = fs::read_to_string(&path) {
                 let new_tab = TabState { path: Some(path), text: content };
@@ -126,7 +130,7 @@ impl Workspace {
         }
     }
 
-    fn save_file(&mut self, _cx: &mut Context<Self>) {
+    pub(crate) fn save_file(&mut self, _cx: &mut Context<Self>) {
         if let Some(tab) = self.tabs.get_mut(self.active_tab_index) {
             let path = tab.path.clone().or_else(|| rfd::FileDialog::new().save_file());
             if let Some(p) = path {
@@ -183,6 +187,7 @@ impl Render for Workspace {
             .flex_col()
             .size_full()
             .bg(theme.background)
+            .child(self.menu_bar.clone())
             .child(self.toolbar.clone())
             .child(
                 TabBar::new("tab_bar")

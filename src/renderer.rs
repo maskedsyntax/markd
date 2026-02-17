@@ -38,16 +38,16 @@ impl MarkdownRenderer {
                 Event::Start(tag) => {
                     match tag {
                         Tag::Heading { level, .. } => {
-                            let size = match level {
-                                pulldown_cmark::HeadingLevel::H1 => px(32.0),
-                                pulldown_cmark::HeadingLevel::H2 => px(24.0),
-                                pulldown_cmark::HeadingLevel::H3 => px(20.0),
-                                _ => px(16.0),
+                            let (size, weight) = match level {
+                                pulldown_cmark::HeadingLevel::H1 => (px(28.0), FontWeight::BOLD),
+                                pulldown_cmark::HeadingLevel::H2 => (px(22.0), FontWeight::BOLD),
+                                pulldown_cmark::HeadingLevel::H3 => (px(18.0), FontWeight::BOLD),
+                                _ => (px(16.0), FontWeight::BOLD),
                             };
-                            stack.push(Some(div().text_size(size).font_weight(FontWeight::BOLD).text_color(theme.heading_color).mt_4().mb_2()));
+                            stack.push(Some(div().text_size(size).font_weight(weight).text_color(theme.heading_color).mt_6().mb_2().border_b(if level <= pulldown_cmark::HeadingLevel::H2 { px(1.0) } else { px(0.0) }).border_color(theme.border)));
                         }
                         Tag::Paragraph => {
-                            stack.push(Some(div().flex().flex_wrap().gap_1()));
+                            stack.push(Some(div().flex().flex_wrap().gap_1().line_height(px(24.0)).mb_4()));
                         }
                         Tag::Strong => {
                             stack.push(Some(div().font_weight(FontWeight::BOLD)));
@@ -70,13 +70,20 @@ impl MarkdownRenderer {
                             stack.push(Some(div().bg(theme.editor_background).p_4().rounded_md().w_full().font_family("monospace").flex().flex_col()));
                         }
                         Tag::List(_) => {
-                            stack.push(Some(div().flex().flex_col().pl_4().gap_1()));
+                            stack.push(Some(div().flex().flex_col().pl_6().gap_1().mb_4()));
                         }
                         Tag::Item => {
-                            stack.push(Some(div().flex().gap_2()));
+                            stack.push(Some(div().flex().gap_3()));
                             if let Some(top_opt) = stack.last_mut() {
                                 if let Some(top) = top_opt.take() {
-                                    *top_opt = Some(top.child("•"));
+                                    *top_opt = Some(top.child(
+                                        div()
+                                            .mt(px(8.0))
+                                            .w(px(4.0))
+                                            .h(px(4.0))
+                                            .rounded_full()
+                                            .bg(theme.text_color.opacity(0.5))
+                                    ));
                                 }
                             }
                         }
