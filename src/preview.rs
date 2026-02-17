@@ -1,4 +1,5 @@
 use gpui::*;
+use gpui_component::scroll::ScrollableElement;
 use crate::theme::Theme;
 use crate::renderer::MarkdownRenderer;
 
@@ -23,10 +24,11 @@ impl Render for Preview {
         let renderer = MarkdownRenderer::new(self.text.clone());
         
         div()
-            .flex_1()
+            .size_full()
             .bg(theme.preview_background)
             .text_color(theme.text_color)
             .p_4()
+            .overflow_y_scrollbar()
             .child(renderer.render(theme))
     }
 }

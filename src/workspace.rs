@@ -1,6 +1,7 @@
 use gpui::*;
 use gpui_component::input::*;
 use gpui_component::resizable::*;
+use gpui_component::tab::*;
 use crate::theme::Theme;
 use crate::toolbar::{Toolbar, ToolbarEvent};
 use crate::preview::Preview;
@@ -12,17 +13,22 @@ pub enum EditorEvent {
     Changed(String),
 }
 
+pub struct TabState {
+    pub path: Option<PathBuf>,
+    pub text: String,
+}
+
 pub struct Workspace {
     window_handle: AnyWindowHandle,
     toolbar: Entity<Toolbar>,
     editor: Entity<Editor>,
     preview: Entity<Preview>,
     status_bar: Entity<StatusBar>,
+    tabs: Vec<TabState>,
+    active_tab_index: usize,
     auto_render: bool,
-    last_text: String,
     debounce_task: Option<Task<()>>,
     autosave_task: Option<Task<()>>,
-    current_path: Option<PathBuf>,
 }
 
 impl Workspace {
@@ -55,9 +61,12 @@ impl Workspace {
         cx.subscribe(&editor, |this, _editor, event: &EditorEvent, cx| {
             match event {
                 EditorEvent::Changed(text) => {
-                    this.last_text = text.clone();
+                    let text_clone = text.clone();
+                    if let Some(tab) = this.tabs.get_mut(this.active_tab_index) {
+                        tab.text = text.clone();
+                    }
                     if this.auto_render {
-                        this.schedule_render(cx);
+                        this.schedule_render(text_clone, cx);
                     }
                 }
             }
@@ -69,11 +78,11 @@ impl Workspace {
             editor, 
             preview, 
             status_bar,
+            tabs: vec![TabState { path: None, text: String::new() }],
+            active_tab_index: 0,
             auto_render: true, 
-            last_text: String::new(),
             debounce_task: None,
             autosave_task: None,
-            current_path: None,
         };
         workspace.start_autosave(cx);
         workspace
@@ -86,9 +95,10 @@ impl Workspace {
                 loop {
                     cx.background_executor().timer(Duration::from_secs(30)).await;
                     let _ = this.update(&mut cx, |this, _cx| {
-                        if let Some(path) = &this.current_path {
-                            let text = this.last_text.clone();
-                            let _ = fs::write(path, text);
+                        for tab in &this.tabs {
+                            if let Some(path) = &tab.path {
+                                let _ = fs::write(path, &tab.text);
+                            }
                         }
                     });
                 }
@@ -97,56 +107,66 @@ impl Workspace {
     }
 
     fn new_file(&mut self, cx: &mut Context<Self>) {
-        self.current_path = None;
-        self.last_text = String::new();
-        let editor = self.editor.clone();
-        cx.update_window(self.window_handle, |_, window, cx| {
-            editor.update(cx, |editor, cx| {
-                editor.set_text(String::new(), window, cx);
-            });
-        }).ok();
+        let new_tab = TabState { path: None, text: String::new() };
+        self.tabs.push(new_tab);
+        self.active_tab_index = self.tabs.len() - 1;
+        self.update_editor_from_active_tab(cx);
         self.render_now(cx);
     }
 
     fn open_file(&mut self, cx: &mut Context<Self>) {
         if let Some(path) = rfd::FileDialog::new().pick_file() {
             if let Ok(content) = fs::read_to_string(&path) {
-                self.current_path = Some(path);
-                self.last_text = content.clone();
-                let editor = self.editor.clone();
-                cx.update_window(self.window_handle, |_, window, cx| {
-                    editor.update(cx, |editor, cx| {
-                        editor.set_text(content, window, cx);
-                    });
-                }).ok();
+                let new_tab = TabState { path: Some(path), text: content };
+                self.tabs.push(new_tab);
+                self.active_tab_index = self.tabs.len() - 1;
+                self.update_editor_from_active_tab(cx);
                 self.render_now(cx);
             }
         }
     }
 
     fn save_file(&mut self, _cx: &mut Context<Self>) {
-        let path = self.current_path.clone().or_else(|| rfd::FileDialog::new().save_file());
-        if let Some(p) = path {
-            if fs::write(&p, &self.last_text).is_ok() {
-                self.current_path = Some(p);
+        if let Some(tab) = self.tabs.get_mut(self.active_tab_index) {
+            let path = tab.path.clone().or_else(|| rfd::FileDialog::new().save_file());
+            if let Some(p) = path {
+                if fs::write(&p, &tab.text).is_ok() {
+                    tab.path = Some(p);
+                }
             }
         }
     }
 
-    fn render_now(&mut self, cx: &mut Context<Self>) {
-        let text = self.last_text.clone();
-        self.preview.update(cx, |preview, cx| {
-            preview.set_text(text, cx);
-        });
+    fn update_editor_from_active_tab(&mut self, cx: &mut Context<Self>) {
+        if let Some(tab) = self.tabs.get(self.active_tab_index) {
+            let text = tab.text.clone();
+            let editor = self.editor.clone();
+            cx.update_window(self.window_handle, |_, window, cx| {
+                editor.update(cx, |editor, cx| {
+                    editor.set_text(text, window, cx);
+                });
+            }).ok();
+        }
     }
 
-    fn schedule_render(&mut self, cx: &mut Context<Self>) {
+    fn render_now(&mut self, cx: &mut Context<Self>) {
+        if let Some(tab) = self.tabs.get(self.active_tab_index) {
+            let text = tab.text.clone();
+            self.preview.update(cx, |preview, cx| {
+                preview.set_text(text, cx);
+            });
+        }
+    }
+
+    fn schedule_render(&mut self, text: String, cx: &mut Context<Self>) {
         self.debounce_task = Some(cx.spawn(|this: WeakEntity<Workspace>, cx: &mut AsyncApp| {
             let mut cx = cx.clone();
             async move {
                 cx.background_executor().timer(Duration::from_millis(150)).await;
                 let _ = this.update(&mut cx, |this, cx| {
-                    this.render_now(cx);
+                    this.preview.update(cx, |preview, cx| {
+                        preview.set_text(text, cx);
+                    });
                 });
             }
         }));
@@ -156,6 +176,7 @@ impl Workspace {
 impl Render for Workspace {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>();
+        let active_index = self.active_tab_index;
         
         div()
             .flex()
@@ -163,6 +184,24 @@ impl Render for Workspace {
             .size_full()
             .bg(theme.background)
             .child(self.toolbar.clone())
+            .child(
+                TabBar::new("tab_bar")
+                    .selected_index(active_index)
+                    .on_click(cx.listener(move |this, index, _window, cx| {
+                        this.active_tab_index = *index;
+                        this.update_editor_from_active_tab(cx);
+                        this.render_now(cx);
+                        cx.notify();
+                    }))
+                    .children(self.tabs.iter().enumerate().map(|(_, tab)| {
+                        let label = tab.path.as_ref()
+                            .and_then(|p| p.file_name())
+                            .and_then(|n| n.to_str())
+                            .map(|s| s.to_string())
+                            .unwrap_or_else(|| "Untitled".to_string());
+                        Tab::new().label(label)
+                    }))
+            )
             .child(
                 div()
                     .flex_1()
@@ -254,10 +293,13 @@ impl Render for Editor {
     fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
         let theme = _cx.global::<Theme>();
         div()
-            .flex_1()
+            .size_full()
             .bg(theme.editor_background)
             .text_color(theme.text_color)
             .p_4()
-            .child(Input::new(&self.input))
+            .child(
+                Input::new(&self.input)
+                    .size_full()
+            )
     }
 }

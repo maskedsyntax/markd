@@ -16,16 +16,16 @@ pub struct Theme {
 impl Theme {
     pub fn dark() -> Self {
         Self {
-            background: rgb(0x2e3440).into(),
-            foreground: rgb(0xd8dee9).into(),
-            editor_background: rgb(0x2e3440).into(),
-            preview_background: rgb(0x3b4252).into(),
-            border: rgb(0x4c566a).into(),
-            toolbar_background: rgb(0x24292e).into(),
-            status_bar_background: rgb(0x24292e).into(),
-            text_color: rgb(0xd8dee9).into(),
-            heading_color: rgb(0x88c0d0).into(),
-            accent_color: rgb(0x81a1c1).into(),
+            background: rgb(0x181818).into(),
+            foreground: rgb(0xcccccc).into(),
+            editor_background: rgb(0x181818).into(),
+            preview_background: rgb(0x181818).into(),
+            border: rgb(0x333333).into(),
+            toolbar_background: rgb(0x242424).into(),
+            status_bar_background: rgb(0x1e1e1e).into(),
+            text_color: rgb(0xcccccc).into(),
+            heading_color: rgb(0x569cd6).into(),
+            accent_color: rgb(0x007acc).into(),
         }
     }
 }
