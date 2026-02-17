@@ -4,15 +4,21 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-gtk = { version = "0.9", features = ["v3_24"] }
-sourceview = "0.9"
+gpui = "0.2"
+gpui-component = "0.5"
+gpui-component-assets = "0.5"
+rfd = "0.14"
 pulldown-cmark = "0.10"
-glib = "0.10"
-gio = "0.9"
+syntect = "5.2"
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 toml = "0.8"
 tracing = "0.1"
 tracing-subscriber = "0.3"
 rayon = "1.8"
-rfd = "0.14"
 tokio = { version = "1", features = ["full"] }
+anyhow = "1.0"
+indexmap = "2.1"
+# For debouncing
+futures-timer = "3.0"
+futures = "0.3"

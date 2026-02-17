@@ -1,24 +1,20 @@
-use gio::prelude::*;
-use std::env;
+use gpui::*;
+mod theme;
+mod workspace;
+mod toolbar;
+mod renderer;
+mod preview;
 
-mod ui;
-mod core;
-mod io;
+use theme::Theme;
+use workspace::Workspace;
 
 fn main() {
-    tracing_subscriber::fmt::init();
-
-    let app = gtk::Application::new(
-        Some("com.maskedsyntax.markd"),
-        gio::ApplicationFlags::FLAGS_NONE,
-    ).expect("failed to initialize GTK application");
-
-    app.connect_activate(build_ui);
-
-    let args: Vec<String> = env::args().collect();
-    app.run(&args);
-}
-
-fn build_ui(app: &gtk::Application) {
-    ui::main_window::build(app);
+    Application::new().run(|cx| {
+        gpui_component::init(cx);
+        cx.set_global(Theme::dark());
+        
+        cx.open_window(WindowOptions::default(), |window, cx| {
+            cx.new(|cx| Workspace::new(window, cx))
+        }).expect("failed to open window");
+    });
 }
