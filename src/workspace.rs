@@ -1,5 +1,6 @@
 use gpui::*;
 use gpui_component::input::*;
+use gpui_component::resizable::*;
 use crate::theme::Theme;
 use crate::toolbar::{Toolbar, ToolbarEvent};
 use crate::preview::Preview;
@@ -16,9 +17,11 @@ pub struct Workspace {
     toolbar: Entity<Toolbar>,
     editor: Entity<Editor>,
     preview: Entity<Preview>,
+    status_bar: Entity<StatusBar>,
     auto_render: bool,
     last_text: String,
     debounce_task: Option<Task<()>>,
+    autosave_task: Option<Task<()>>,
     current_path: Option<PathBuf>,
 }
 
@@ -28,7 +31,17 @@ impl Workspace {
         let toolbar = cx.new(|_cx| Toolbar::new());
         let editor = cx.new(|cx| Editor::new(window, cx));
         let preview = cx.new(|_cx| Preview::new());
+        let status_bar = cx.new(|_cx| StatusBar::new());
         
+        let status_bar_handle = status_bar.clone();
+        cx.observe(&editor, move |_this, editor, cx| {
+            let input = editor.read(cx).input.read(cx);
+            let cursor = input.cursor_position();
+            status_bar_handle.update(cx, |status_bar, cx| {
+                status_bar.set_cursor(cursor.line as usize + 1, cursor.character as usize + 1, cx);
+            });
+        }).detach();
+
         cx.subscribe(&toolbar, |this, _toolbar, event: &ToolbarEvent, cx| {
             match event {
                 ToolbarEvent::New => this.new_file(cx),
@@ -50,16 +63,37 @@ impl Workspace {
             }
         }).detach();
         
-        Self { 
+        let mut workspace = Self { 
             window_handle,
             toolbar, 
             editor, 
             preview, 
+            status_bar,
             auto_render: true, 
             last_text: String::new(),
             debounce_task: None,
+            autosave_task: None,
             current_path: None,
-        }
+        };
+        workspace.start_autosave(cx);
+        workspace
+    }
+
+    fn start_autosave(&mut self, cx: &mut Context<Self>) {
+        self.autosave_task = Some(cx.spawn(|this: WeakEntity<Workspace>, cx: &mut AsyncApp| {
+            let mut cx = cx.clone();
+            async move {
+                loop {
+                    cx.background_executor().timer(Duration::from_secs(30)).await;
+                    let _ = this.update(&mut cx, |this, _cx| {
+                        if let Some(path) = &this.current_path {
+                            let text = this.last_text.clone();
+                            let _ = fs::write(path, text);
+                        }
+                    });
+                }
+            }
+        }));
     }
 
     fn new_file(&mut self, cx: &mut Context<Self>) {
@@ -131,16 +165,59 @@ impl Render for Workspace {
             .child(self.toolbar.clone())
             .child(
                 div()
-                    .flex()
                     .flex_1()
-                    .child(self.editor.clone())
                     .child(
-                        div()
-                            .w_1()
-                            .bg(theme.border)
+                        h_resizable("workspace_split")
+                            .child(
+                                resizable_panel()
+                                    .child(self.editor.clone())
+                            )
+                            .child(
+                                resizable_panel()
+                                    .child(self.preview.clone())
+                            )
                     )
-                    .child(self.preview.clone())
             )
+            .child(self.status_bar.clone())
+    }
+}
+
+pub struct StatusBar {
+    line: usize,
+    character: usize,
+}
+
+impl StatusBar {
+    pub fn new() -> Self {
+        Self {
+            line: 1,
+            character: 1,
+        }
+    }
+
+    pub fn set_cursor(&mut self, line: usize, character: usize, cx: &mut Context<Self>) {
+        self.line = line;
+        self.character = character;
+        cx.notify();
+    }
+}
+
+impl Render for StatusBar {
+    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let theme = cx.global::<Theme>();
+        
+        div()
+            .flex()
+            .h_6()
+            .bg(theme.status_bar_background)
+            .text_color(theme.text_color)
+            .text_size(px(12.0))
+            .items_center()
+            .px_4()
+            .gap_4()
+            .child(format!("Ln {}, Col {}", self.line, self.character))
+            .child(div().flex_1())
+            .child("UTF-8")
     }
 }
 
@@ -152,7 +229,11 @@ impl EventEmitter<EditorEvent> for Editor {}
 
 impl Editor {
     pub fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
-        let input = cx.new(|cx| InputState::new(window, cx));
+        let input = cx.new(|cx| {
+            InputState::new(window, cx)
+                .code_editor("markdown")
+                .line_number(true)
+        });
         
         cx.observe(&input, |_this, input, cx| {
             let text = input.read(cx).value().to_string();
