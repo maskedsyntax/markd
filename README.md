@@ -1,17 +1,20 @@
 # Markd 📝
 
-Markd is a fast, clean, and minimal Markdown editor written in Rust. It features a split-pane interface: a native Markdown text editor on the left and a live, GitHub-style preview on the right.
+Markd is a fast, clean, and minimal Markdown editor written in Rust. It features a GPU-accelerated split-pane interface: a high-performance Markdown text editor on the left and a live, GitHub-style preview on the right.
 
-Built with **GTK3** for broad compatibility and a native Linux experience.
+Built with **GPUI** (the Rust-native GPU-accelerated UI framework used by Zed) for a modern, fluid, and highly responsive experience on Linux.
 
 ## Features
 
-- **Split-Pane Layout**: Adjustable vertical divider to balance editor and preview.
-- **Live Preview**: Real-time rendering of Markdown as you type using Pango markup.
-- **Theme Support**: Toggle between light and dark modes directly from the header bar.
-- **Native Components**: Powered by `GtkSourceView` for high-performance editing.
-- **Markdown Support**: Headers, lists, emphasis (bold/italic), code blocks, and more.
-- **Lightweight**: Fast startup and responsive interface.
+- **GPU-Accelerated UI**: Powered by GPUI for high frame rates and low latency.
+- **Resizable Split-Pane**: Draggable vertical divider to balance editor and preview.
+- **Advanced Code Editor**: High-performance editing with line numbers and syntax awareness.
+- **GitHub-Flavored Markdown**: Real-time rendering of headers, blockquotes, tables, links, task lists, and more.
+- **Syntax Highlighting**: Beautiful code block highlighting powered by `syntect`.
+- **Auto-Render**: Debounced live preview that updates as you type (150ms delay).
+- **Status Bar**: Real-time cursor position (line and column) and file encoding.
+- **Autosave**: Background task that periodically saves your work every 30 seconds.
+- **Native File Operations**: Integrated New, Open, and Save dialogs.
 
 ## Installation
 
@@ -19,10 +22,7 @@ Built with **GTK3** for broad compatibility and a native Linux experience.
 
 Ensure you have the following installed:
 - Rust toolchain (via [rustup](https://rustup.rs/))
-- GTK3 and GtkSourceView 3 development libraries:
-  ```bash
-  sudo apt install libgtk-3-dev libgtksourceview-3.0-dev
-  ```
+- System dependencies for GPUI (varies by distro, typically `libx11`, `libxkbcommon`, `vulkan-loader`, etc.)
 
 ### Build & Run
 
@@ -32,10 +32,18 @@ cargo run
 
 ## Architecture
 
-Markd follows a modular design:
-- **UI Layer**: GTK3 implementation.
-- **Core Layer**: Markdown parsing and Pango rendering engine.
-- **IO Layer**: File management utilities.
+Markd follows a clean, modular architecture:
+- **UI Layer**: GPUI components and resizable layouts.
+- **Core Layer**: Markdown parsing (`pulldown-cmark`) and rendering engine.
+- **IO Layer**: File persistence and background autosave management.
+
+## Keyboard Shortcuts
+
+- **Ctrl+N**: New File
+- **Ctrl+O**: Open File
+- **Ctrl+S**: Save File
+- **Ctrl+R**: Manual Render
+- **Ctrl+Shift+R**: Toggle Auto-Render
 
 ## License
 
