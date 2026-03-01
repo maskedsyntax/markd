@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ site_title }} - {{ page_title }}</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #333; }
+        pre { background: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        code { font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, Courier, monospace; background: #f4f4f4; padding: 2px 4px; border-radius: 3px; }
+        h1, h2, h3 { color: #222; }
+    </style>
+</head>
+<body>
+    <header>
+        <nav><a href="/">Home</a></nav>
+        <hr>
+    </header>
+    <main>
+        {{ content | safe }}
+    </main>
+    <footer>
+        <hr>
+        <p>Built with Markd</p>
+    </footer>
+</body>
+</html>

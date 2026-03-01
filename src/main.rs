@@ -46,12 +46,26 @@ async fn main() -> Result<()> {
             };
             
             println!("Building site from {:?} to {:?}...", config.source_dir, config.output_dir);
-            // TODO: Implement build logic
+            let template_dir = PathBuf::from("templates");
+            let compiler = MarkdCompiler::new(config.site_title, Some(&template_dir))?;
+            compiler.build_all(&config.source_dir, &config.output_dir)?;
+            println!("Build complete!");
         }
         Some(Commands::Watch { source }) => {
-            let source_dir = source.unwrap_or_else(|| PathBuf::from("notes"));
-            println!("Watching {:?} for changes...", source_dir);
-            // TODO: Implement watch logic
+            let config = MarkdConfig {
+                source_dir: source.unwrap_or_else(|| PathBuf::from("notes")),
+                ..Default::default()
+            };
+            
+            let template_dir = PathBuf::from("templates");
+            let compiler = MarkdCompiler::new(config.site_title, Some(&template_dir))?;
+            
+            // Initial build
+            println!("Initial build...");
+            compiler.build_all(&config.source_dir, &config.output_dir)?;
+            
+            let watcher = markd::watcher::MarkdWatcher::new(compiler);
+            watcher.watch(&config.source_dir, &config.output_dir)?;
         }
         Some(Commands::Init) => {
             println!("Initializing new markd project...");
