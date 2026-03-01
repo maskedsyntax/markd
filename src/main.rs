@@ -71,7 +71,15 @@ async fn main() -> Result<()> {
         }
         Some(Commands::Init) => {
             println!("Initializing new markd project...");
-            // TODO: Implement init logic
+            std::fs::create_dir_all("notes")?;
+            std::fs::create_dir_all("templates")?;
+            std::fs::create_dir_all("theme")?;
+            
+            // Create a sample note
+            let sample_note = "# Welcome to Markd\n\nThis is your first note. Run `markd build` to compile it!";
+            std::fs::write("notes/welcome.md", sample_note)?;
+            
+            println!("Project initialized! Try running `markd build`.");
         }
         None => {
             println!("Use --help for usage information.");
