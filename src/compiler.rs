@@ -77,6 +77,15 @@ impl MarkdCompiler {
             anyhow::bail!("Source directory {:?} does not exist", source_dir);
         }
 
+        // Copy theme assets if they exist
+        let theme_dir = Path::new("theme");
+        if theme_dir.exists() {
+            let mut options = fs_extra::dir::CopyOptions::new();
+            options.content_only = true;
+            options.overwrite = true;
+            fs_extra::dir::copy(theme_dir, output_dir, &options)?;
+        }
+
         let mut pages = Vec::new();
 
         for entry in WalkDir::new(source_dir)
