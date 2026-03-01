@@ -47,7 +47,8 @@ async fn main() -> Result<()> {
             
             println!("Building site from {:?} to {:?}...", config.source_dir, config.output_dir);
             let template_dir = PathBuf::from("templates");
-            let compiler = MarkdCompiler::new(config.site_title, Some(&template_dir))?;
+            let index_path = config.output_dir.join(".index");
+            let compiler = MarkdCompiler::new(config.site_title, Some(&template_dir), Some(&index_path))?;
             compiler.build_all(&config.source_dir, &config.output_dir)?;
             println!("Build complete!");
         }
@@ -58,7 +59,8 @@ async fn main() -> Result<()> {
             };
             
             let template_dir = PathBuf::from("templates");
-            let compiler = MarkdCompiler::new(config.site_title, Some(&template_dir))?;
+            let index_path = config.output_dir.join(".index");
+            let compiler = MarkdCompiler::new(config.site_title, Some(&template_dir), Some(&index_path))?;
             
             // Initial build
             println!("Initial build...");

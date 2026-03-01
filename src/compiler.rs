@@ -4,15 +4,17 @@ use std::fs;
 use std::path::Path;
 
 use crate::template::MarkdRenderer;
+use crate::indexer::MarkdIndexer;
 
 pub struct MarkdCompiler {
     pub options: Options,
     pub renderer: Option<MarkdRenderer>,
+    pub indexer: Option<MarkdIndexer>,
     pub site_title: String,
 }
 
 impl MarkdCompiler {
-    pub fn new(site_title: String, template_dir: Option<&Path>) -> Result<Self> {
+    pub fn new(site_title: String, template_dir: Option<&Path>, index_path: Option<&Path>) -> Result<Self> {
         let mut options = Options::empty();
         options.insert(Options::ENABLE_STRIKETHROUGH);
         options.insert(Options::ENABLE_TABLES);
@@ -25,7 +27,13 @@ impl MarkdCompiler {
             None
         };
 
-        Ok(Self { options, renderer, site_title })
+        let indexer = if let Some(path) = index_path {
+            Some(MarkdIndexer::new(path)?)
+        } else {
+            None
+        };
+
+        Ok(Self { options, renderer, indexer, site_title })
     }
 
     pub fn compile_md(&self, md_content: &str) -> String {
@@ -39,10 +47,15 @@ impl MarkdCompiler {
         let md_content = fs::read_to_string(input_path)?;
         let html_content = self.compile_md(&md_content);
         
+        let page_title = input_path.file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("Untitled");
+
+        if let Some(indexer) = &self.indexer {
+            indexer.index_document(page_title, &md_content, output_path.to_str().unwrap_or(""))?;
+        }
+
         let final_content = if let Some(renderer) = &self.renderer {
-            let page_title = input_path.file_stem()
-                .and_then(|s| s.to_str())
-                .unwrap_or("Untitled");
             renderer.render(&self.site_title, page_title, &html_content)?
         } else {
             html_content
