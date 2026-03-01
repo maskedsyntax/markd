@@ -12,21 +12,49 @@ Markd is a Rust-based tool that watches a folder of Markdown files (your persona
 - **Table of Contents:** Automatic generation of an index page.
 - **Custom CSS:** Easy themes via the `theme` directory.
 
-## Getting Started
+## Usage
 
-### Initialize a project
+### 1. Installation
+
+To use `markd` as a global command:
+
 ```bash
-markd init
+# From the project root
+cargo install --path .
 ```
 
-### Build the site
-```bash
-markd build
-```
+### 2. Available Commands
 
-### Watch for changes
+- **Initialize a project**
+  Creates the `notes/`, `templates/`, and `theme/` directories with sample files.
+  ```bash
+  markd init
+  ```
+
+- **Build the static site**
+  Compiles all Markdown files from the source directory to HTML in the output directory.
+  ```bash
+  markd build
+  ```
+  *Options:*
+  - `-s, --source <PATH>`: Source directory of notes (default: `notes`)
+  - `-o, --output <PATH>`: Output directory for the site (default: `dist`)
+
+- **Watch for changes**
+  Starts a file watcher that rebuilds your site automatically whenever you save a note.
+  ```bash
+  markd watch
+  ```
+  *Options:*
+  - `-s, --source <PATH>`: Source directory of notes (default: `notes`)
+
+### 3. Development (Without Installation)
+
+If you haven't installed the binary globally, you can run all commands through Cargo:
+
 ```bash
-markd watch
+cargo run -- build
+cargo run -- watch
 ```
 
 ## Project Structure
