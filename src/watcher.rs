@@ -2,7 +2,6 @@ use anyhow::Result;
 use notify::{Watcher, RecursiveMode, Event, RecommendedWatcher, Config};
 use std::path::Path;
 use std::sync::mpsc::channel;
-use std::time::Duration;
 use crate::compiler::MarkdCompiler;
 
 pub struct MarkdWatcher {

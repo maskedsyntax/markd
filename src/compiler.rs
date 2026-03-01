@@ -77,6 +77,8 @@ impl MarkdCompiler {
             anyhow::bail!("Source directory {:?} does not exist", source_dir);
         }
 
+        let mut pages = Vec::new();
+
         for entry in WalkDir::new(source_dir)
             .into_iter()
             .filter_map(|e| e.ok())
@@ -86,10 +88,35 @@ impl MarkdCompiler {
             let mut output_path = output_dir.join(relative_path);
             output_path.set_extension("html");
 
+            let page_title = entry.path().file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or("Untitled")
+                .to_string();
+
             println!("Compiling {:?}...", relative_path);
             self.compile_file(entry.path(), &output_path)?;
+            
+            let mut link_path = relative_path.to_path_buf();
+            link_path.set_extension("html");
+            pages.push((page_title, link_path.to_str().unwrap_or("").to_string()));
         }
 
+        self.generate_index(output_dir, pages)?;
+
+        Ok(())
+    }
+
+    fn generate_index(&self, output_dir: &Path, pages: Vec<(String, String)>) -> Result<()> {
+        if let Some(renderer) = &self.renderer {
+            let mut index_content = String::from("<h1>Table of Contents</h1><ul>");
+            for (title, path) in pages {
+                index_content.push_str(&format!("<li><a href=\"{}\">{}</a></li>", path, title));
+            }
+            index_content.push_str("</ul>");
+
+            let rendered = renderer.render(&self.site_title, "Home", &index_content)?;
+            fs::write(output_dir.join("index.html"), rendered)?;
+        }
         Ok(())
     }
 }
